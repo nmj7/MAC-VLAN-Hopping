@@ -1,0 +1,51 @@
+################################        MAC Hopping      ##########################
+import random
+import os
+import time
+from scapy.all import *
+from datetime import datetime
+
+def generate_random_mac():
+    """Generate a random MAC address."""
+    mac = [0x00, 0x16, 0x3e,
+           random.randint(0x00, 0x7f),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff)]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
+def change_mac(interface):
+    """Change the MAC address of a network interface."""
+    new_mac = generate_random_mac()
+    os.system(f"sudo ifconfig {interface} down")
+    os.system(f"sudo ifconfig {interface} hw ether {new_mac}")
+    os.system(f"sudo ifconfig {interface} up")
+    log_mac_change(interface, new_mac)
+    print(f"MAC address changed to {new_mac}")
+
+def log_mac_change(interface, new_mac):
+    """Log the MAC address change with a timestamp."""
+    with open("mac_change_log.txt", "a") as log_file:
+        log_file.write(f"{datetime.now()} - Interface: {interface}, New MAC: {new_mac}\n")
+
+def random_interval(min_seconds=30, max_seconds=120):
+    """Return a random interval between min_seconds and max_seconds."""
+    return random.randint(min_seconds, max_seconds)
+
+def is_connected(interface):
+    """Check if the network interface is connected."""
+    result = os.system(f"ping -c 1 -I {interface} 8.8.8.8 > /dev/null 2>&1")
+    return result == 0
+
+def mac_hopping(interface, min_interval=30, max_interval=120):
+    """Change MAC address at random intervals while ensuring connectivity."""
+    while True:
+        if is_connected(interface):
+            change_mac(interface)
+            time.sleep(random_interval(min_interval, max_interval))
+        else:
+            print(f"{datetime.now()} - Interface {interface} is not connected. Retrying in 10 seconds.")
+            time.sleep(10)
+
+if __name__ == "__main__":
+    interface = "eth0"  # network interface
+    mac_hopping(interface, min_interval=60, max_interval=300)  # Random interval between 1 to 5 minutes
